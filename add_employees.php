@@ -237,7 +237,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         /* Form styles */
         .form-container {
             max-width: 800px;
-            margin: 0 auto;
+           
             padding: 20px;
         }
 
@@ -291,10 +291,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 padding: 20px;
             }
         }
-        
         @media (min-width: 1200px) {
     .form-container {
-        padding: 20px 0; /* Keep padding only on top/bottom */
+        padding: 20px 0;
+        margin-left: 0;
+        max-width: 100%;
     }
     .form-container .form-label {
         text-align: left;
@@ -304,12 +305,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
     .form-container .form-check {
         text-align: left;
         margin-left: 0;
-        padding-left: 0;
-        width: 100%; /* Ensure full width for alignment */
+        width: 100%;
     }
-}
-
-    </style>
+    .form-container .btn-primary {
+        margin-left: 0;
+    }
+    /* Specific fix for the checkbox */
+    .form-check {
+        display: flex;
+        align-items: center;
+    }
+    .form-check-input {
+        position: relative;
+        margin-top: 0;
+        margin-right: 0.5em;
+    }
+} 
+       
+       
+       </style>
 </head>
 <body>
     <!-- Sidebar Toggle Button -->
