@@ -173,6 +173,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SERVER['HTTP_USER_AGENT']
         );
     }
+   
+    if (isset($_POST['reset'])) {
+        logUserAction(
+            $_SESSION['emp_id'] ?? null,
+            $_SESSION['user'],
+            'filter_reset',
+            "Reset all filters",
+            $_SERVER['REQUEST_URI'],
+            $_SERVER['REQUEST_METHOD'],
+            null,
+            200,
+            null,
+            $_SERVER['REMOTE_ADDR'],
+            $_SERVER['HTTP_USER_AGENT']
+        );
+       
+        unset($_SESSION['device_name']);
+        unset($_SESSION['android_version']);
+        unset($_SESSION['selected_product']);
+        unset($_SESSION['selected_version']);
+        $selected_product = '';
+        $selected_version = '';
+    }
 }
 
 $device_name = $_SESSION['device_name'] ?? '';
@@ -195,7 +218,7 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
     <style>
         /* [Previous CSS remains exactly the same] */
         /* ... (all your existing CSS styles) ... */
-        html, body {
+				html, body {
             height: 100%;
             margin: 0;
             padding: 0;
@@ -446,56 +469,62 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
             70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
             100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
         }
+        .card-disabled {
+            opacity: 0.8;
+            background-color: #f8f9fa;
+        }
         .tested-badge {
             display: none;
         }
         .sidebar-toggle {
-            display: none; /* Only this display property should exist */
-            position: fixed;
-            left: 3px;
-            top: 20px;
-            z-index: 1050;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            width: 35px;
-            height: 35px;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            align-items: center;
-            justify-content: center;
-        }
+    display: none; /* Only this display property should exist */
+    position: fixed;
+    left: 3px;
+    top: 20px;
+    z-index: 1050;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    align-items: center;
+    justify-content: center;
+}
+
+
 
         /* Responsive styles */
         @media (max-width: 767.98px) {
-            .sidebar-container {
-                transform: translateX(-240px);
-            }
-            .sidebar-container.show {
-                transform: translateX(0);
-            }
-            .content-container {
-                margin-left: 20px;
-            }
-            .sidebar-toggle {
-                display: flex; /* Show only on mobile */
-            }
-            .col-md-4 {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
-            .bug-details-row {
-                flex-direction: column;
-            }
-            .bug-details-row .form-group:last-child {
-                flex: 1;
-                width: 100%;
-            }
+        .sidebar-container {
+            transform: translateX(-240px);
         }
+        .sidebar-container.show {
+            transform: translateX(0);
+        }
+        .content-container {
+            margin-left: 20px;
+        }
+        .sidebar-toggle {
+            display: flex; /* Show only on mobile */
+        }
+        .col-md-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        .bug-details-row {
+            flex-direction: column;
+        }
+        .bug-details-row .form-group:last-child {
+            flex: 1;
+            width: 100%;
+        }
+    }
         
         @media (min-width: 768px) and (max-width: 991.98px) {
             .col-md-4 {
@@ -697,6 +726,14 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                     </div>
                    
                     <div class="filter-buttons">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                       
+                        <button type="submit" name="reset" class="btn btn-danger btn-sm">
+                            <i class="fas fa-sync"></i> Reset
+                        </button>
+                       
                         <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#apkDownloadModal">
                             <i class="fas fa-download"></i> Download APK
                         </button>
@@ -733,10 +770,11 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                
                 while ($row = $result->fetch_assoc()) {
                     $testcase_id = $row['id'];
+                    $is_updated = !empty($row['tested_by_name']);
                     $testing_result = $row['testing_result'] ?? '';
                 ?>
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100" id="card-<?= $testcase_id ?>">
+                    <div class="card h-100 <?= $is_updated ? 'card-disabled' : '' ?>" id="card-<?= $testcase_id ?>">
                         <div class="card-header">
                             <span>
                                 <i class="fas fa-folder me-1"></i>
@@ -758,7 +796,7 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                                 <p class="ms-2"><?= htmlspecialchars($row['test_steps']); ?></p>
                             </div>
                            
-                            <form class="test-form" data-id="<?= $testcase_id; ?>" action="update_testcases.php" method="POST" enctype="multipart/form-data">
+                            <form class="test-form" data-id="<?= $testcase_id; ?>" action="update_testcases.php" method="POST" enctype="multipart/form-data" <?= $is_updated ? 'disabled' : '' ?>>
                                 <input type="hidden" name="id" value="<?= $testcase_id; ?>">
                                 <input type="hidden" name="tested_by_name" value="<?= htmlspecialchars($_SESSION['user']) ?>">
                                 <input type="hidden" name="product_name" value="<?= htmlspecialchars($selected_product); ?>">
@@ -772,21 +810,21 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                                     <p class="mb-2"><strong>Testing Result:</strong></p>
                                     <div class="radio-group">
                                         <label class="pass-label">
-                                            <input type="radio" name="testing_result" value="pass" class="me-1 result-radio" data-id="<?= $testcase_id ?>" <?= ($testing_result === 'pass') ? 'checked' : '' ?>>
+                                            <input type="radio" name="testing_result" value="pass" class="me-1 result-radio" data-id="<?= $testcase_id ?>" <?= $is_updated ? 'disabled' : '' ?> <?= ($testing_result === 'pass') ? 'checked' : '' ?>>
                                             <i class="fas fa-check-circle me-1"></i> Pass
                                         </label>
                                         <label class="fail-label">
-                                            <input type="radio" name="testing_result" value="fail" class="me-1 result-radio" data-id="<?= $testcase_id ?>" <?= ($testing_result === 'fail') ? 'checked' : '' ?>>
+                                            <input type="radio" name="testing_result" value="fail" class="me-1 result-radio" data-id="<?= $testcase_id ?>" <?= $is_updated ? 'disabled' : '' ?> <?= ($testing_result === 'fail') ? 'checked' : '' ?>>
                                             <i class="fas fa-times-circle me-1"></i> Fail
                                         </label>
                                     </div>
                                 </div>
                                
-                                <div id="bug-details-<?= $testcase_id ?>" class="bug-details <?= ($testing_result === 'fail') ? '' : 'd-none' ?>">
+                                <div id="bug-details-<?= $testcase_id ?>" class="bug-details <?= ($testing_result === 'fail' && !$is_updated) ? '' : 'd-none' ?>">
                                     <div class="bug-details-row">
                                         <div class="form-group">
                                             <label for="bug_type_<?= $testcase_id; ?>" class="form-label">Bug Type:</label>
-                                            <select id="bug_type_<?= $testcase_id; ?>" name="bug_type" class="form-select" <?= ($testing_result === 'fail') ? '' : 'disabled' ?> required>
+                                            <select id="bug_type_<?= $testcase_id; ?>" name="bug_type" class="form-select" <?= ($testing_result === 'fail' && !$is_updated) ? '' : 'disabled' ?> required>
                                                 <option value="">Select Bug Type</option>
                                                 <option value="Critical" <?= ($row['bug_type'] ?? '' === 'Critical') ? 'selected' : '' ?>>Critical</option>
                                                 <option value="High" <?= ($row['bug_type'] ?? '' === 'High') ? 'selected' : '' ?>>High</option>
@@ -796,7 +834,7 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                                        
                                         <div class="form-group">
                                             <label for="file_attachment_<?= $testcase_id; ?>" class="form-label">Attachment:</label>
-                                            <input type="file" id="file_attachment_<?= $testcase_id; ?>" name="file_attachment" class="form-control" <?= ($testing_result === 'fail') ? '' : 'disabled' ?>>
+                                            <input type="file" id="file_attachment_<?= $testcase_id; ?>" name="file_attachment" class="form-control" <?= ($testing_result === 'fail' && !$is_updated) ? '' : 'disabled' ?>>
                                             <div class="upload-progress mt-2">
                                                 <div class="progress">
                                                     <div class="progress-bar" role="progressbar" style="width: 0%"></div>
@@ -808,13 +846,13 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                                    
                                     <div class="form-group">
                                         <label for="actual_result_<?= $testcase_id; ?>" class="form-label">Actual Result:</label>
-                                        <textarea id="actual_result_<?= $testcase_id; ?>" name="actual_result" class="form-control" rows="3" <?= ($testing_result === 'fail') ? 'required' : '' ?> <?= ($testing_result === 'fail') ? '' : 'disabled' ?>><?= htmlspecialchars($row['actual_result'] ?? '') ?></textarea>
+                                        <textarea id="actual_result_<?= $testcase_id; ?>" name="actual_result" class="form-control" rows="3" <?= ($testing_result === 'fail' && !$is_updated) ? 'required' : '' ?> <?= ($testing_result === 'fail' && !$is_updated) ? '' : 'disabled' ?>><?= htmlspecialchars($row['actual_result'] ?? '') ?></textarea>
                                     </div>
                                 </div>
                                
                                 <div class="submit-btn-container">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <?= ($testing_result === 'pass' || $testing_result === 'fail') ? '<i class="fas fa-check"></i> Update' : 'Submit' ?>
+                                    <button type="submit" class="btn btn-primary w-100" <?= $is_updated ? 'disabled' : '' ?>>
+                                        <?= $is_updated ? '<i class="fas fa-check"></i> Completed' : 'Submit' ?>
                                     </button>
                                 </div>
                             </form>
@@ -860,24 +898,12 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                
                 $('[id^="device_name_"]').val(deviceName);
                 $('[id^="android_version_"]').val(androidVersion);
-                
-                // Automatically submit the form when device info is entered
-                if (deviceName && androidVersion && $('#product_name').val() && $('#version').val()) {
-                    $('#filter-form').submit();
-                }
             });
            
             // Trigger initial change to set values if they exist
             if ($('#global_device_name').val() || $('#global_android_version').val()) {
                 $('#global_device_name, #global_android_version').trigger('change');
             }
-            
-            // Automatically load test cases when product and version are selected
-            $('#product_name, #version').on('change', function() {
-                if ($('#product_name').val() && $('#version').val()) {
-                    $('#filter-form').submit();
-                }
-            });
            
             // Toggle sidebar for mobile view
             $('#sidebarToggle').click(function() {
@@ -1166,9 +1192,11 @@ $folders = array_filter(glob('uploads/*'), 'is_dir');
                             // Update UI to show test case is completed
                             const card = $('#card-' + testcaseId);
                             card.addClass(response.testing_result === 'pass' ? 'card-pass' : 'card-fail');
+                            card.addClass('card-disabled');
+                            card.find('input, select, textarea, button').prop('disabled', true);
                            
                             // Update button text
-                            card.find('.submit-btn-container button').html('<i class="fas fa-check"></i> Update');
+                            card.find('.submit-btn-container button').html('<i class="fas fa-check"></i> Completed');
                            
                             // Show success message
                             showSubmissionMessage('Test case submitted successfully!', 'success');
